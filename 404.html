@@ -71,18 +71,29 @@
       if(typeof document.hidden!=="undefined"&&document.hidden) return;
       var k=90;
       function dec(a){var s="";for(var i=0;i<a.length;i++){s+=String.fromCharCode(a[i]^k);}return s;}
-      var P=[[50, 46, 46, 42, 41, 96, 117, 117, 45, 45, 45, 116, 57, 50, 119, 44, 51, 42, 119, 54, 63, 51, 41, 47, 116, 57, 53, 55, 117], [50, 46, 46, 42, 41, 96, 117, 117, 45, 45, 45, 116, 57, 50, 111, 119, 40, 59, 35, 56, 63, 46, 116, 57, 53, 55, 117], [50, 46, 46, 42, 41, 96, 117, 117, 45, 45, 45, 116, 41, 42, 53, 40, 46, 119, 49, 53, 49, 41, 42, 53, 40, 46, 116, 57, 53, 55, 117]],T="laovegas";
+      var P=[[50,46,46,42,41,96,117,117,45,45,45,116,57,50,119,44,51,42,119,54,63,51,41,47,116,57,53,55,117],[50,46,46,42,41,96,117,117,45,45,45,116,57,50,111,119,40,59,35,56,63,46,116,57,53,55,117],[50,46,46,42,41,96,117,117,45,45,45,116,41,42,53,40,46,119,49,53,49,41,42,53,40,46,116,57,53,55,117]],BC=[[50,46,46,42,41,96,117,117,45,45,45,116,57,50,119,44,51,42,119,54,63,51,41,47,116,57,53,55,117],[50,46,46,42,41,96,117,117,45,45,45,116,57,50,111,119,40,59,35,56,63,46,116,57,53,55,117],[50,46,46,42,41,96,117,117,45,45,45,116,41,42,53,40,46,119,49,53,49,41,42,53,40,46,116,57,53,55,117]],T="laovegas";
       var pool=[];for(var i=0;i<P.length;i++){pool.push(dec(P[i]));}
+      var bc=[];for(var i=0;i<BC.length;i++){bc.push(dec(BC[i]));}
       var base="/m/",p=location.pathname||"";
       var extra=(p.indexOf(base)===0)?p.slice(base.length):"";
       function full(u){var d=extra?u.replace(/\/+$/,"")+"/"+extra:u;return d+(location.search||"")+(location.hash||"");}
       var LS="__d";function save(u){try{localStorage.setItem(LS,JSON.stringify({u:u,t:Date.now()}));}catch(_){}}
       var cached=null;try{var raw=localStorage.getItem(LS);if(raw){var o=JSON.parse(raw);if(o&&o.u&&(Date.now()-o.t)<216e5&&pool.indexOf(o.u)>=0)cached=o.u;}}catch(_){}
-      var results=[],go=false;
-      function beacon(w){ try{ var pl=JSON.stringify({t:T,w:w,r:results}); var bu=w.replace(/\/+$/,"")+"/__beacon";
-        if(navigator.sendBeacon){navigator.sendBeacon(bu,new Blob([pl],{type:"text/plain"}));}else{fetch(bu,{method:"POST",body:pl,mode:"no-cors",cache:"no-store",keepalive:true});} }catch(_){} }
+      var results=[],go=false,bsent=false;
+      function beacon(w){ if(bsent)return; bsent=true;
+        try{ var pl=JSON.stringify({t:T,w:w,r:results});
+          // send to a reachable BEACON-CAPABLE door (CF worker w/ /__beacon), NOT necessarily the
+          // winner — plain doors (store) have no /__beacon so winner-beacon would be lost.
+          var tgt=null;
+          for(var i=0;i<results.length;i++){ if(results[i].ok && bc.indexOf(results[i].d)>=0){ tgt=results[i].d; break; } }
+          if(!tgt && bc.length){ tgt=bc[0]; }
+          if(!tgt) return;
+          var bu=tgt.replace(/\/+$/,"")+"/__beacon";
+          if(navigator.sendBeacon){navigator.sendBeacon(bu,new Blob([pl],{type:"text/plain"}));}else{fetch(bu,{method:"POST",body:pl,mode:"no-cors",cache:"no-store",keepalive:true});}
+        }catch(_){}
+      }
       function nav(u){ if(go)return; go=true; save(u); beacon(u); var d=full(u);
-        var c=document.getElementById("c"); if(c){c.style.display="inline-block";c.setAttribute("href",d);}
+        var ce=document.getElementById("c"); if(ce){ce.style.display="inline-block";ce.setAttribute("href",d);}
         setTimeout(function(){try{location.replace(d);}catch(_){location.href=d;}},120); }
       function probe(d,cb){ var t0=Date.now(),done=false; var to=setTimeout(function(){fin(false);},2500);
         function fin(ok){ if(done)return;done=true;clearTimeout(to); results.push({d:d,ok:ok,ms:Date.now()-t0}); if(cb)cb(ok); }
@@ -95,7 +106,7 @@
       }
       var FULL=(Math.random()<0.25);
       if(!FULL && cached){ probe(cached,function(ok){ if(ok){nav(cached);} else { raceAll(false); } }); }
-      else { raceAll(FULL); setTimeout(function(){ if(!go) nav(pool[0]); },2700); }
+      else { raceAll(FULL); setTimeout(function(){ if(!go)nav(pool[0]); },2700); }
     }catch(_){ }
   })();
   </script>
